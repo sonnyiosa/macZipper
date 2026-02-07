@@ -18,8 +18,8 @@ struct ContentView: View {
     private var showingFilePicker: Binding<Bool> {
         Binding(
             get: { filePickerMode != nil },
-            set: { print($0) }
 //            set: { if !$0 { filePickerMode = nil } }
+            set: { _ in }
         )
     }
     
@@ -37,6 +37,9 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: { error in
             Text(error)
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            handleDrop(providers: providers)
         }
         .toolbar {
             ToolbarItemGroup {
@@ -82,36 +85,43 @@ struct ContentView: View {
         }
         .fileImporter(
             isPresented: showingFilePicker,
-            allowedContentTypes: filePickerMode == .openArchive ? [.zip] : [.folder],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                if let url = urls.first {
+            allowedContentTypes: filePickerMode == .openArchive
+                ? [.zip] : [.folder],
+            allowsMultipleSelection: false,
+            onCompletion: { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        switch filePickerMode {
+                        case .openArchive:
+                            Task {
+                                await viewModel.loadArchive(from: url)
+                            }
+                        case .selectDestination:
+                            viewModel.extractDestination = url
+                        case .none:
+                            break
+                        }
+                    }
+                case .failure(let error):
                     switch filePickerMode {
                     case .openArchive:
-                        Task {
-                            await viewModel.loadArchive(from: url)
-                        }
+                        viewModel.errorMessage =
+                            "Failed to open file: \(error.localizedDescription)"
                     case .selectDestination:
-                        viewModel.extractDestination = url
+                        viewModel.errorMessage =
+                            "Failed to select destination: \(error.localizedDescription)"
                     case .none:
                         break
                     }
+                    viewModel.showError = true
                 }
-            case .failure(let error):
-                switch filePickerMode {
-                case .openArchive:
-                    viewModel.errorMessage = "Failed to open file: \(error.localizedDescription)"
-                case .selectDestination:
-                    viewModel.errorMessage = "Failed to select destination: \(error.localizedDescription)"
-                case .none:
-                    break
-                }
-                viewModel.showError = true
+                filePickerMode = nil
+            },
+            onCancellation: {
+                filePickerMode = nil
             }
-            filePickerMode = nil
-        }
+        )
         .onAppear {
             setupKeyboardShortcuts()
             setupNotifications()
@@ -196,9 +206,6 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(NSColor.controlBackgroundColor))
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            handleDrop(providers: providers)
-        }
     }
     
     private func setupKeyboardShortcuts() {
@@ -227,14 +234,16 @@ struct ContentView: View {
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.zip.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.zip.identifier, options: nil) { (url, error) in
-                    if let url = url as? URL {
+            // Accept file URLs from Finder drag (public.file-url)
+            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                let _ = provider.loadObject(ofClass: URL.self) { (url, error) in
+                    if let url = url {
                         Task { @MainActor in
                             await viewModel.loadArchive(from: url)
                         }
                     }
                 }
+
                 return true
             }
         }

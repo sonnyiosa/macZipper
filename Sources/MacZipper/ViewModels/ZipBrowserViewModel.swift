@@ -36,9 +36,33 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var lastError: Error?
     @Published var isLoading = false
     
+    @AppStorage("lastExtractDestination") private var lastExtractDestinationBookmark: Data?
+    @AppStorage("windowWidth") private var windowWidth: Double = 1000
+    @AppStorage("windowHeight") private var windowHeight: Double = 700
+    
     private let zipService = ZipService()
     private let previewService = FilePreviewService()
     private var allEntries: [ZipEntry] = []
+    
+    var windowSize: CGSize {
+        get { CGSize(width: windowWidth, height: windowHeight) }
+        set {
+            windowWidth = newValue.width
+            windowHeight = newValue.height
+        }
+    }
+    
+    func loadLastDestination() -> URL? {
+        guard let bookmark = lastExtractDestinationBookmark else { return nil }
+        var isStale = false
+        return try? URL(resolvingBookmarkData: bookmark, bookmarkDataIsStale: &isStale)
+    }
+    
+    func saveDestination(_ url: URL) {
+        if let bookmark = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+            lastExtractDestinationBookmark = bookmark
+        }
+    }
     
     var currentEntries: [ZipEntryNode] {
         if let folder = currentFolder {
@@ -69,8 +93,12 @@ class ZipBrowserViewModel: ObservableObject {
             isLoaded = true
             selectedPaths.removeAll()
             
-            // Set default extract destination to zip's folder
-            extractDestination = url.deletingLastPathComponent()
+            // Set default extract destination: last used location, or zip's folder
+            if let lastDest = loadLastDestination() {
+                extractDestination = lastDest
+            } else {
+                extractDestination = url.deletingLastPathComponent()
+            }
         } catch {
             lastError = error
             errorMessage = "Failed to load archive: \(error.localizedDescription)"
@@ -192,6 +220,9 @@ class ZipBrowserViewModel: ObservableObject {
             
             try await zipService.extract(entries: entries, to: destination, progress: progress)
             extractionProgress = 1.0
+            
+            // Save this destination for next time
+            saveDestination(destination)
         } catch {
             lastError = error
             errorMessage = "Extraction failed: \(error.localizedDescription)"
