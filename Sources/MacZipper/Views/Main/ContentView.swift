@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import QuickLook
 
 enum FilePickerMode {
     case openArchive
@@ -14,11 +15,11 @@ struct ContentView: View {
     @State private var filePickerMode: FilePickerMode?
     @State private var searchText = ""
     @FocusState private var isSearchFieldFocused: Bool
+    @State private var quickLookIsPresented = false
     
     private var showingFilePicker: Binding<Bool> {
         Binding(
             get: { filePickerMode != nil },
-//            set: { if !$0 { filePickerMode = nil } }
             set: { _ in }
         )
     }
@@ -132,6 +133,7 @@ struct ContentView: View {
                 await viewModel.loadArchive(from: url)
             }
         }
+        .quickLookPreview($viewModel.quickLookURL, in: viewModel.quickLookURL != nil ? [viewModel.quickLookURL!] : [])
     }
 
     private func setupNotifications() {
@@ -148,11 +150,15 @@ struct ContentView: View {
         }
         
         NotificationCenter.default.addObserver(forName: .selectAllFiles, object: nil, queue: .main) { _ in
-            viewModel.selectAll()
+            Task { @MainActor in
+                viewModel.selectAll()
+            }
         }
         
         NotificationCenter.default.addObserver(forName: .deselectAllFiles, object: nil, queue: .main) { _ in
-            viewModel.deselectAll()
+            Task { @MainActor in
+                viewModel.deselectAll()
+            }
         }
         
         NotificationCenter.default.addObserver(forName: .setDestination, object: nil, queue: .main) { _ in
@@ -163,6 +169,7 @@ struct ContentView: View {
     private var archiveContentView: some View {
         NavigationSplitView {
             FolderTreeView(viewModel: viewModel, searchText: $searchText)
+                .frame(minWidth: 220)
         } detail: {
             FileListView(viewModel: viewModel, searchText: $searchText)
         }
@@ -215,21 +222,36 @@ struct ContentView: View {
     }
     
     private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
-        guard event.modifierFlags.contains(.command) else { return event }
+        let modifiers = event.modifierFlags
         
-        switch event.charactersIgnoringModifiers {
-        case "a":
-            viewModel.selectAll()
-            return nil
-        case "d":
-            viewModel.deselectAll()
-            return nil
-        case "f":
-            isSearchFieldFocused = true
-            return nil
-        default:
-            return event
+        // Handle Command shortcuts
+        if modifiers.contains(.command) {
+            switch event.charactersIgnoringModifiers {
+            case "a":
+                viewModel.selectAll()
+                return nil
+            case "d":
+                viewModel.deselectAll()
+                return nil
+            case "f":
+                isSearchFieldFocused = true
+                return nil
+            default:
+                break
+            }
         }
+        
+        // Handle Space bar for Quick Look (only when files are selected)
+        if event.keyCode == 49 { // Space key
+            if let entry = viewModel.getFirstSelectedEntry() {
+                Task {
+                    await viewModel.quickLookEntry(at: entry.path)
+                }
+                return nil
+            }
+        }
+        
+        return event
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {

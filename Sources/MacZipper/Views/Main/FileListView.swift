@@ -16,14 +16,20 @@ struct FileListView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with sort controls
             HStack {
-                Text("Name")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("Size")
-                    .frame(width: 100, alignment: .trailing)
-                Text("Modified")
-                    .frame(width: 150, alignment: .trailing)
+                sortButton(for: .name, title: "Name", width: nil)
+                
+                Spacer()
+                
+                Text("Compressed")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 90, alignment: .trailing)
+                
+                sortButton(for: .size, title: "Size", width: 80)
+                
+                sortButton(for: .date, title: "Modified", width: 120)
             }
             .font(.caption)
             .foregroundColor(.secondary)
@@ -54,5 +60,27 @@ struct FileListView: View {
             }
             .listStyle(.plain)
         }
+    }
+    
+    private func sortButton(for option: SortOption, title: String, width: CGFloat?) -> some View {
+        Button(action: {
+            if viewModel.sortOption == option {
+                viewModel.sortOrder.toggle()
+            } else {
+                viewModel.sortOption = option
+                viewModel.sortOrder = .ascending
+            }
+        }) {
+            HStack(spacing: 4) {
+                Text(title)
+                if viewModel.sortOption == option {
+                    Image(systemName: viewModel.sortOrder.iconName)
+                        .font(.caption2)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(viewModel.sortOption == option ? .accentColor : .secondary)
+        .frame(width: width, alignment: width != nil ? .trailing : .leading)
     }
 }

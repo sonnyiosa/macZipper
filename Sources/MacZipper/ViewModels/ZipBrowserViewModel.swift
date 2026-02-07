@@ -1,5 +1,6 @@
 import SwiftUI
 import ZIPFoundation
+import UniformTypeIdentifiers
 
 enum ZipperError: Error, LocalizedError {
     case invalidArchive
@@ -35,6 +36,11 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var showError = false
     @Published var lastError: Error?
     @Published var isLoading = false
+    @Published var sortOption: SortOption = .name
+    @Published var sortOrder: SortOrder = .ascending
+    @Published var quickLookURL: URL?
+    @Published var showQuickLook = false
+    @Published var selectedEntryForQuickLook: ZipEntry?
     
     @AppStorage("lastExtractDestination") private var lastExtractDestinationBookmark: Data?
     @AppStorage("windowWidth") private var windowWidth: Double = 1000
@@ -65,10 +71,41 @@ class ZipBrowserViewModel: ObservableObject {
     }
     
     var currentEntries: [ZipEntryNode] {
+        let entries: [ZipEntryNode]
         if let folder = currentFolder {
-            return folder.children?.sorted { ($0.isDirectory ? 0 : 1) < ($1.isDirectory ? 0 : 1) } ?? []
+            entries = folder.children ?? []
+        } else {
+            entries = rootNode?.children ?? []
         }
-        return rootNode?.children?.sorted { ($0.isDirectory ? 0 : 1) < ($1.isDirectory ? 0 : 1) } ?? []
+        
+        // Sort directories first, then by selected sort option
+        return entries.sorted { a, b in
+            // Directories always come first
+            if a.isDirectory != b.isDirectory {
+                return a.isDirectory
+            }
+            
+            // Apply user-selected sort
+            let result: Bool
+            switch sortOption {
+            case .name:
+                result = a.name.localizedStandardCompare(b.name) == .orderedAscending
+            case .size:
+                result = a.size < b.size
+            case .date:
+                if let dateA = a.modificationDate, let dateB = b.modificationDate {
+                    result = dateA < dateB
+                } else if a.modificationDate != nil {
+                    result = true
+                } else if b.modificationDate != nil {
+                    result = false
+                } else {
+                    result = a.name < b.name
+                }
+            }
+            
+            return sortOrder == .ascending ? result : !result
+        }
     }
     
     var selectedSize: UInt64 {
@@ -89,6 +126,7 @@ class ZipBrowserViewModel: ObservableObject {
             try await zipService.openArchive(at: url)
             allEntries = try await zipService.loadEntries()
             rootNode = buildTree(from: allEntries)
+            rootNode?.isExpanded = true
             currentFolder = rootNode
             isLoaded = true
             selectedPaths.removeAll()
@@ -119,6 +157,30 @@ class ZipBrowserViewModel: ObservableObject {
             errorMessage = "Failed to preview file: \(error.localizedDescription)"
             showError = true
         }
+    }
+    
+    func quickLookEntry(at path: String) async {
+        guard let archiveURL = archiveURL,
+              let entry = allEntries.first(where: { $0.path == path }),
+              !entry.isDirectory else { return }
+        
+        do {
+            let url = try await previewService.extractForQuickLook(entry: entry, from: archiveURL, using: zipService)
+            await MainActor.run {
+                self.quickLookURL = url
+                self.selectedEntryForQuickLook = entry
+                self.showQuickLook = true
+            }
+        } catch {
+            lastError = error
+            errorMessage = "Failed to prepare preview: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+    
+    func getFirstSelectedEntry() -> ZipEntry? {
+        guard let firstPath = selectedPaths.first else { return nil }
+        return allEntries.first { $0.path == firstPath && !$0.isDirectory }
     }
     
     func selectFolder(_ node: ZipEntryNode) {
@@ -253,6 +315,7 @@ class ZipBrowserViewModel: ObservableObject {
                         name: component,
                         isDirectory: entry.isDirectory || !isLast,
                         size: isLast ? entry.size : 0,
+                        compressedSize: isLast ? entry.compressedSize : 0,
                         modificationDate: isLast ? entry.modificationDate : nil
                     )
                     pathToNode[currentPath] = newNode

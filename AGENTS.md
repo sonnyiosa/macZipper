@@ -8,7 +8,8 @@ Language: Swift 5.9+
 UI Framework: SwiftUI (modern, declarative UI)
 Zip Handling: ZIPFoundation 
 Minimum Target: macOS 13.0
-Project setup: XcodeGen (https://github.com/yonaskolb/XcodeGen)
+Project setup: XcodeGen (https://github.com/yonaskolb/XcodeGen) 
+ + Configured at: @project.yml
 
 
 # 2. Feature requirements

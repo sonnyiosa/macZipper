@@ -3,20 +3,22 @@ targets:
   MacZipper:
     type: application
     platform: macOS
-    deploymentTarget: "13.0"
+    deploymentTarget: "14.0"
     sources:
       - Sources/MacZipper
     resources:
       - Sources/MacZipper/Resources
     dependencies:
       - package: ZIPFoundation
+      - sdk: QuickLook.framework
+      - sdk: QuickLookUI.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.maczipper.MacZipper
         INFOPLIST_FILE: Sources/MacZipper/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/MacZipper/Resources/MacZipper.entitlements
         SWIFT_VERSION: "5.9"
-        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
     info:
       path: Sources/MacZipper/Resources/Info.plist
       properties:
@@ -25,7 +27,7 @@ targets:
         CFBundleIdentifier: com.maczipper.MacZipper
         CFBundleVersion: "1.0"
         CFBundleShortVersionString: "1.0.0"
-        LSMinimumSystemVersion: "13.0"
+        LSMinimumSystemVersion: "14.0"
         NSMainNibFile: ""
         NSPrincipalClass: NSApplication
         UTExportedTypeDeclarations:

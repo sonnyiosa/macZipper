@@ -38,6 +38,10 @@ struct FolderNodeView: View {
         }
     }
     
+    private var isSelected: Bool {
+        viewModel.currentFolder?.id == node.id
+    }
+    
     var body: some View {
         if shouldShow {
             HStack(spacing: 4) {
@@ -46,8 +50,11 @@ struct FolderNodeView: View {
                 }) {
                     Image(systemName: viewModel.selectionState(for: node.path).imageName)
                         .foregroundColor(.accentColor)
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(4)
                 
                 if node.isDirectory {
                     Image(systemName: node.isExpanded ? "folder.fill" : "folder")
@@ -74,7 +81,11 @@ struct FolderNodeView: View {
                 }
             }
             .padding(.leading, CGFloat(level * 16))
+            .padding(.vertical, 2)
+            .padding(.horizontal, 4)
             .contentShape(Rectangle())
+            .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+            .cornerRadius(4)
             .onTapGesture {
                 if node.isDirectory {
                     viewModel.selectFolder(node)

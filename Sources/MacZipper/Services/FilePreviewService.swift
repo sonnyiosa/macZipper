@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import QuickLook
 
 actor FilePreviewService {
     private let tempDirectory: URL
@@ -33,6 +34,21 @@ actor FilePreviewService {
         await MainActor.run {
             NSWorkspace.shared.open(destinationURL)
         }
+    }
+    
+    func extractForQuickLook(entry: ZipEntry, from archiveURL: URL, using zipService: ZipService) async throws -> URL {
+        // Create a unique temp directory for this preview
+        let entryTempDir = tempDirectory.appendingPathComponent(UUID().uuidString)
+        try fileManager.createDirectory(at: entryTempDir, withIntermediateDirectories: true)
+        
+        // Determine the destination file URL
+        let destinationURL = entryTempDir.appendingPathComponent(entry.name)
+        
+        // Extract the file
+        let progress = Progress()
+        try await zipService.extract(entry: entry, to: destinationURL, progress: progress)
+        
+        return destinationURL
     }
     
     func cleanup() {
