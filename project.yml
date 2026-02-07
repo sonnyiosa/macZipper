@@ -8,6 +8,7 @@ targets:
       - Sources/MacZipper
     resources:
       - Sources/MacZipper/Resources
+      - assets/Assets.xcassets
     dependencies:
       - package: ZIPFoundation
       - sdk: QuickLook.framework
@@ -19,6 +20,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/MacZipper/Resources/MacZipper.entitlements
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Sources/MacZipper/Resources/Info.plist
       properties:
