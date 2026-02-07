@@ -1,0 +1,51 @@
+name: MacZipper
+targets:
+  MacZipper:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - Sources/MacZipper
+    resources:
+      - Sources/MacZipper/Resources
+    dependencies:
+      - package: ZIPFoundation
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.maczipper.MacZipper
+        INFOPLIST_FILE: Sources/MacZipper/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/MacZipper/Resources/MacZipper.entitlements
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+    info:
+      path: Sources/MacZipper/Resources/Info.plist
+      properties:
+        CFBundleName: MacZipper
+        CFBundleDisplayName: MacZipper
+        CFBundleIdentifier: com.maczipper.MacZipper
+        CFBundleVersion: "1.0"
+        CFBundleShortVersionString: "1.0.0"
+        LSMinimumSystemVersion: "13.0"
+        NSMainNibFile: ""
+        NSPrincipalClass: NSApplication
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.maczipper.zip-archive
+            UTTypeDescription: Zip Archive
+            UTTypeConformsTo:
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - zip
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Zip Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - public.zip-archive
+              - com.maczipper.zip-archive
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    from: 0.9.20

@@ -1,0 +1,243 @@
+import SwiftUI
+import UniformTypeIdentifiers
+
+enum FilePickerMode {
+    case openArchive
+    case selectDestination
+}
+
+struct ContentView: View {
+    @Binding var document: ZipDocument
+    let fileURL: URL?
+    @StateObject private var viewModel = ZipBrowserViewModel()
+    @State private var isArchiveLoaded = false
+    @State private var filePickerMode: FilePickerMode?
+    @State private var searchText = ""
+    @FocusState private var isSearchFieldFocused: Bool
+    
+    private var showingFilePicker: Binding<Bool> {
+        Binding(
+            get: { filePickerMode != nil },
+            set: { print($0) }
+//            set: { if !$0 { filePickerMode = nil } }
+        )
+    }
+    
+    var body: some View {
+        Group {
+            if viewModel.isLoaded {
+                archiveContentView
+            } else if viewModel.isLoading {
+                loadingView
+            } else {
+                emptyStateView
+            }
+        }
+        .alert("Error", isPresented: $viewModel.showError, presenting: viewModel.errorMessage) { error in
+            Button("OK", role: .cancel) { }
+        } message: { error in
+            Text(error)
+        }
+        .toolbar {
+            ToolbarItemGroup {
+                Button(action: {
+                    filePickerMode = .openArchive
+                }) {
+                    Label("Open", systemImage: "doc.badge.plus")
+                }
+                .keyboardShortcut("o", modifiers: .command)
+                
+                Button("Extract All") {
+                    Task {
+                        await viewModel.extractAll()
+                    }
+                }
+                .disabled(!viewModel.isLoaded || viewModel.isExtracting)
+                
+                Button("Extract Selected") {
+                    Task {
+                        await viewModel.extractSelected()
+                    }
+                }
+                .disabled(viewModel.selectedPaths.isEmpty || viewModel.isExtracting)
+                
+                Button(action: {
+                    filePickerMode = .selectDestination
+                }) {
+                    Label("Destination", systemImage: "folder.badge.gear")
+                }
+                .disabled(!viewModel.isLoaded)
+            }
+            
+            ToolbarItem(placement: .primaryAction) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Search files...", text: $searchText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 200)
+                        .focused($isSearchFieldFocused)
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: showingFilePicker,
+            allowedContentTypes: filePickerMode == .openArchive ? [.zip] : [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    switch filePickerMode {
+                    case .openArchive:
+                        Task {
+                            await viewModel.loadArchive(from: url)
+                        }
+                    case .selectDestination:
+                        viewModel.extractDestination = url
+                    case .none:
+                        break
+                    }
+                }
+            case .failure(let error):
+                switch filePickerMode {
+                case .openArchive:
+                    viewModel.errorMessage = "Failed to open file: \(error.localizedDescription)"
+                case .selectDestination:
+                    viewModel.errorMessage = "Failed to select destination: \(error.localizedDescription)"
+                case .none:
+                    break
+                }
+                viewModel.showError = true
+            }
+            filePickerMode = nil
+        }
+        .onAppear {
+            setupKeyboardShortcuts()
+            setupNotifications()
+        }
+        .task {
+            // Try to load from fileURL (when opened via document-based architecture)
+            if let url = fileURL {
+                await viewModel.loadArchive(from: url)
+            }
+        }
+    }
+
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(forName: .extractAll, object: nil, queue: .main) { _ in
+            Task {
+                await viewModel.extractAll()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: .extractSelected, object: nil, queue: .main) { _ in
+            Task {
+                await viewModel.extractSelected()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: .selectAllFiles, object: nil, queue: .main) { _ in
+            viewModel.selectAll()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .deselectAllFiles, object: nil, queue: .main) { _ in
+            viewModel.deselectAll()
+        }
+        
+        NotificationCenter.default.addObserver(forName: .setDestination, object: nil, queue: .main) { _ in
+            filePickerMode = .selectDestination
+        }
+    }
+    
+    private var archiveContentView: some View {
+        NavigationSplitView {
+            FolderTreeView(viewModel: viewModel, searchText: $searchText)
+        } detail: {
+            FileListView(viewModel: viewModel, searchText: $searchText)
+        }
+        .safeAreaInset(edge: .bottom) {
+            StatusBarView(viewModel: viewModel)
+        }
+    }
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text("Loading archive...")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.zipper")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            
+            Text("Open a ZIP Archive")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("Drag and drop a ZIP file here, or click the button below")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button("Open ZIP File...") {
+                filePickerMode = .openArchive
+            }
+            .keyboardShortcut("o", modifiers: .command)
+            .padding(.top, 10)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.controlBackgroundColor))
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            handleDrop(providers: providers)
+        }
+    }
+    
+    private func setupKeyboardShortcuts() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handleKeyEvent(event)
+        }
+    }
+    
+    private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
+        guard event.modifierFlags.contains(.command) else { return event }
+        
+        switch event.charactersIgnoringModifiers {
+        case "a":
+            viewModel.selectAll()
+            return nil
+        case "d":
+            viewModel.deselectAll()
+            return nil
+        case "f":
+            isSearchFieldFocused = true
+            return nil
+        default:
+            return event
+        }
+    }
+    
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.zip.identifier) {
+                provider.loadItem(forTypeIdentifier: UTType.zip.identifier, options: nil) { (url, error) in
+                    if let url = url as? URL {
+                        Task { @MainActor in
+                            await viewModel.loadArchive(from: url)
+                        }
+                    }
+                }
+                return true
+            }
+        }
+        return false
+    }
+}
