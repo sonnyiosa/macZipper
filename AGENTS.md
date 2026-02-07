@@ -18,27 +18,10 @@ Project setup: XcodeGen (https://github.com/yonaskolb/XcodeGen)
 - Select/Unselect Files
 - Extract Functionality
 - Double-Click to Open
-
-# Main Window Layout
-
-┌───────────────────────────────────────────────────────────┐
-│ [Toolbar: Open | Extract All | Extract Selected | Search] │
-├─────────────────┬─────────────────────────────────────────┤
-│                 │                                         │
-│ Folder Tree     │  File List (Current Folder)            │
-│ ─────────       │  ─────────────────────────────         │
-│ 📦 archive.zip  │  ☑ 📄 document.pdf      2.3 MB        │
-│  ☑ 📁 src       │  ☑ 🖼 image.png         856 KB        │
-│    ☑ 📁 assets  │  ☐ 📄 readme.txt        4 KB          │
-│    ☑ 📁 utils   │  ☑ 📄 config.json       2 KB          │
-│  ☑ 📁 docs      │                                         │
-│  ☑ 📁 tests     │  [Empty space shows files from         │
-│                 │   selected folder in tree]             │
-│                 │                                         │
-│                 │                                         │
-│ [Folder Stats]  │  [File Details at bottom]              │
-├─────────────────┴─────────────────────────────────────────┤
-│ Status: 23 files selected | 15.7 MB | Extract to: ~/Downloads │
-└───────────────────────────────────────────────────────────┘
-
+- [ ] Extract selected files should ask to chooes destination folder
+- [ ] "Move to" with selected files didnt work
+- [ ] Compose new zip 
+- [ ] More archive types support: gzip, gz, tar
+- [ ] Search in zip
+- [ ] Open folder in FileListView should navigate to it 
 
