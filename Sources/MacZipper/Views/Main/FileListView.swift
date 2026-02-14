@@ -59,6 +59,7 @@ struct FileListView: View {
                 }
             }
             .listStyle(.plain)
+            .padding(.bottom, 32)
         }
     }
     
