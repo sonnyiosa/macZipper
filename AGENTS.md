@@ -96,7 +96,7 @@ macos_zipper/
 
 # Build 
 
-IMPORTANT: Use subagent for this verification task
+IMPORTANT: Use light-weight subagent for this verification task
 
 To verify implementation compiles:
 
@@ -115,12 +115,12 @@ xcodebuild test -scheme MacZipper -destination 'platform=macOS'
 
 - [x] File list view scroller is hiding the last item
 - [x] Implement archive entry filter layer (__MACOSX, .DS_Store filtering)
+- [ ] Open folder in FileListView should navigate to it 
 - [ ] Improve tree view 
-- [ ] Extract selected files should ask to chooes destination folder
-- [ ] Compose new zip 
+- [x] Extract selected files should ask to chooes destination folder
 - [ ] More archive types support: gzip, gz, tar
 - [ ] Search in zip
-- [ ] Open folder in FileListView should navigate to it 
 - [ ] Extract progress
 - [ ] "Move to" with selected files didnt work
+- [ ] Compose new zip 
 

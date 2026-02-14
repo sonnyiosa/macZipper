@@ -42,6 +42,44 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var showQuickLook = false
     @Published var selectedEntryForQuickLook: ZipEntry?
     
+    // Navigation history for file list (independent from sidebar)
+    @Published var fileListFolder: ZipEntryNode?
+    private var navigationHistory: [ZipEntryNode?] = []
+    private var forwardHistory: [ZipEntryNode?] = []
+    
+    var canGoBack: Bool { !navigationHistory.isEmpty }
+    var canGoForward: Bool { !forwardHistory.isEmpty }
+    
+    var breadcrumbPath: String {
+        var components: [String] = ["Archive"]
+        var current = fileListFolder
+        
+        while let node = current, !node.path.isEmpty {
+            components.append(node.name)
+            current = findParent(of: node)
+        }
+        
+        return components.reversed().joined(separator: " > ")
+    }
+    
+    private func findParent(of node: ZipEntryNode) -> ZipEntryNode? {
+        guard let root = rootNode else { return nil }
+        return findParentRecursive(parent: root, target: node)
+    }
+    
+    private func findParentRecursive(parent: ZipEntryNode, target: ZipEntryNode) -> ZipEntryNode? {
+        guard let children = parent.children else { return nil }
+        for child in children {
+            if child.path == target.path {
+                return parent
+            }
+            if let found = findParentRecursive(parent: child, target: target) {
+                return found
+            }
+        }
+        return nil
+    }
+    
     @AppStorage("lastExtractDestination") private var lastExtractDestinationBookmark: Data?
     @AppStorage("windowWidth") private var windowWidth: Double = 1000
     @AppStorage("windowHeight") private var windowHeight: Double = 700
@@ -86,7 +124,7 @@ class ZipBrowserViewModel: ObservableObject {
     
     var currentEntries: [ZipEntryNode] {
         let entries: [ZipEntryNode]
-        if let folder = currentFolder {
+        if let folder = fileListFolder {
             entries = folder.children ?? []
         } else {
             entries = rootNode?.children ?? []
@@ -143,6 +181,9 @@ class ZipBrowserViewModel: ObservableObject {
             rootNode = buildTree(from: allEntries)
             rootNode?.isExpanded = true
             currentFolder = rootNode
+            fileListFolder = rootNode
+            navigationHistory.removeAll()
+            forwardHistory.removeAll()
             isLoaded = true
             selectedPaths.removeAll()
             
@@ -201,6 +242,30 @@ class ZipBrowserViewModel: ObservableObject {
     func selectFolder(_ node: ZipEntryNode) {
         currentFolder = node
         node.isExpanded.toggle()
+    }
+    
+    /// Navigate the file list into a folder (double-click).
+    /// Pushes current folder to back-stack, clears forward-stack.
+    func navigateToFolder(_ node: ZipEntryNode) {
+        guard node.isDirectory else { return }
+        navigationHistory.append(fileListFolder)
+        forwardHistory.removeAll()
+        fileListFolder = node
+        node.isExpanded = true
+    }
+    
+    /// Go back to the previous folder in navigation history.
+    func navigateBack() {
+        guard let previous = navigationHistory.popLast() else { return }
+        forwardHistory.append(fileListFolder)
+        fileListFolder = previous
+    }
+    
+    /// Go forward in navigation history.
+    func navigateForward() {
+        guard let next = forwardHistory.popLast() else { return }
+        navigationHistory.append(fileListFolder)
+        fileListFolder = next
     }
     
     func selectionState(for path: String) -> SelectionState {

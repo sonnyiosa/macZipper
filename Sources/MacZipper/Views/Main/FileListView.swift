@@ -16,6 +16,39 @@ struct FileListView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Navigation bar
+            HStack(spacing: 4) {
+                Button(action: { viewModel.navigateBack() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .disabled(!viewModel.canGoBack)
+
+                Button(action: { viewModel.navigateForward() }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .disabled(!viewModel.canGoForward)
+
+                // Current path breadcrumb
+                Text(viewModel.breadcrumbPath)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+
+            Divider()
+            
             // Header with sort controls
             HStack {
                 sortButton(for: .name, title: "Name", width: nil)
@@ -49,8 +82,11 @@ struct FileListView: View {
                         }
                     )
                     .onTapGesture(count: 2) {
-                        // Double-click to preview
-                        if !entry.isDirectory {
+                        if entry.isDirectory {
+                            // Double-click folder → navigate into it
+                            viewModel.navigateToFolder(entry)
+                        } else {
+                            // Double-click file → preview
                             Task {
                                 await viewModel.previewEntry(at: entry.path)
                             }
