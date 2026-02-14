@@ -280,6 +280,13 @@ class ZipBrowserViewModel: ObservableObject {
         await extractEntries(entriesToExtract, to: extractDestination)
     }
     
+    func extractSelected(to destination: URL) async {
+        let entriesToExtract = allEntries.filter { entry in
+            selectedPaths.contains(entry.path) && !entry.isDirectory
+        }
+        await extractEntries(entriesToExtract, to: destination)
+    }
+    
     private func extractEntries(_ entries: [ZipEntry], to destination: URL?) async {
         guard let destination = destination, !entries.isEmpty else {
             errorMessage = "No destination folder selected."

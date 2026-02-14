@@ -5,6 +5,7 @@ import QuickLook
 enum FilePickerMode {
     case openArchive
     case selectDestination
+    case extractSelected
 }
 
 struct ContentView: View {
@@ -59,9 +60,7 @@ struct ContentView: View {
                 .disabled(!viewModel.isLoaded || viewModel.isExtracting)
                 
                 Button("Extract Selected") {
-                    Task {
-                        await viewModel.extractSelected()
-                    }
+                    filePickerMode = .extractSelected
                 }
                 .disabled(viewModel.selectedPaths.isEmpty || viewModel.isExtracting)
                 
@@ -100,6 +99,10 @@ struct ContentView: View {
                             }
                         case .selectDestination:
                             viewModel.extractDestination = url
+                        case .extractSelected:
+                            Task {
+                                await viewModel.extractSelected(to: url)
+                            }
                         case .none:
                             break
                         }
@@ -112,6 +115,9 @@ struct ContentView: View {
                     case .selectDestination:
                         viewModel.errorMessage =
                             "Failed to select destination: \(error.localizedDescription)"
+                    case .extractSelected:
+                        viewModel.errorMessage =
+                            "Failed to extract: \(error.localizedDescription)"
                     case .none:
                         break
                     }
@@ -144,9 +150,7 @@ struct ContentView: View {
         }
         
         NotificationCenter.default.addObserver(forName: .extractSelected, object: nil, queue: .main) { _ in
-            Task {
-                await viewModel.extractSelected()
-            }
+            filePickerMode = .extractSelected
         }
         
         NotificationCenter.default.addObserver(forName: .selectAllFiles, object: nil, queue: .main) { _ in

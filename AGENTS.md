@@ -95,6 +95,9 @@ macos_zipper/
 ```
 
 # Build 
+
+IMPORTANT: Use subagent for this verification task
+
 To verify implementation compiles:
 
 ```
@@ -114,10 +117,10 @@ xcodebuild test -scheme MacZipper -destination 'platform=macOS'
 - [x] Implement archive entry filter layer (__MACOSX, .DS_Store filtering)
 - [ ] Improve tree view 
 - [ ] Extract selected files should ask to chooes destination folder
-- [ ] "Move to" with selected files didnt work
 - [ ] Compose new zip 
 - [ ] More archive types support: gzip, gz, tar
 - [ ] Search in zip
 - [ ] Open folder in FileListView should navigate to it 
 - [ ] Extract progress
+- [ ] "Move to" with selected files didnt work
 
