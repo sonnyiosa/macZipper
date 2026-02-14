@@ -31,18 +31,6 @@ struct StatusBarView: View {
                 }
                 
                 Spacer()
-                
-                if let destination = viewModel.extractDestination {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.down.circle")
-                            .font(.caption)
-                        Text("Extract to: \(destination.path)")
-                            .font(.caption)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: 300, alignment: .trailing)
-                    }
-                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

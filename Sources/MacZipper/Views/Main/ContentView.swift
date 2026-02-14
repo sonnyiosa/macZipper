@@ -4,7 +4,6 @@ import QuickLook
 
 enum FilePickerMode {
     case openArchive
-    case selectDestination
     case extractSelected
 }
 
@@ -63,13 +62,6 @@ struct ContentView: View {
                     filePickerMode = .extractSelected
                 }
                 .disabled(viewModel.selectedPaths.isEmpty || viewModel.isExtracting)
-                
-                Button(action: {
-                    filePickerMode = .selectDestination
-                }) {
-                    Label("Destination", systemImage: "folder.badge.gear")
-                }
-                .disabled(!viewModel.isLoaded)
             }
             
             ToolbarItem(placement: .primaryAction) {
@@ -97,8 +89,7 @@ struct ContentView: View {
                             Task {
                                 await viewModel.loadArchive(from: url)
                             }
-                        case .selectDestination:
-                            viewModel.extractDestination = url
+
                         case .extractSelected:
                             Task {
                                 await viewModel.extractSelected(to: url)
@@ -112,9 +103,7 @@ struct ContentView: View {
                     case .openArchive:
                         viewModel.errorMessage =
                             "Failed to open file: \(error.localizedDescription)"
-                    case .selectDestination:
-                        viewModel.errorMessage =
-                            "Failed to select destination: \(error.localizedDescription)"
+
                     case .extractSelected:
                         viewModel.errorMessage =
                             "Failed to extract: \(error.localizedDescription)"
@@ -165,9 +154,7 @@ struct ContentView: View {
             }
         }
         
-        NotificationCenter.default.addObserver(forName: .setDestination, object: nil, queue: .main) { _ in
-            filePickerMode = .selectDestination
-        }
+
     }
     
     private var archiveContentView: some View {

@@ -37,12 +37,7 @@ struct MacZipperApp: App {
                 }
                 .keyboardShortcut("d", modifiers: .command)
                 
-                Divider()
-                
-                Button("Set Destination...") {
-                    NotificationCenter.default.post(name: .setDestination, object: nil)
-                }
-                .keyboardShortcut("t", modifiers: .command)
+
             }
         }
     }
@@ -53,5 +48,4 @@ extension Notification.Name {
     static let extractSelected = Notification.Name("extractSelected")
     static let selectAllFiles = Notification.Name("selectAllFiles")
     static let deselectAllFiles = Notification.Name("deselectAllFiles")
-    static let setDestination = Notification.Name("setDestination")
 }
