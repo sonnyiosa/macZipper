@@ -115,8 +115,8 @@ xcodebuild test -scheme MacZipper -destination 'platform=macOS'
 
 - [x] File list view scroller is hiding the last item
 - [x] Implement archive entry filter layer (__MACOSX, .DS_Store filtering)
-- [ ] Open folder in FileListView should navigate to it 
-- [ ] Improve tree view 
+- [x] Open folder in FileListView should navigate to it 
+- [x] Improve tree view 
 - [x] Extract selected files should ask to chooes destination folder
 - [ ] More archive types support: gzip, gz, tar
 - [ ] Search in zip
