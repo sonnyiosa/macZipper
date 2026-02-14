@@ -19,6 +19,34 @@ Project setup: XcodeGen (https://github.com/yonaskolb/XcodeGen)
 - Extract Functionality
 - Double-Click to Open
 
+# 3. Archive Entry Filtering
+
+Implements a configurable filter layer for excluding unwanted files and folders from archives.
+
+## Filter Types
+
+### Built-in Filters (Phase 1 - Implemented)
+| Filter | Pattern | Description | Default |
+|--------|---------|-------------|---------|
+| **MacOSMetadataFilter** | `__MACOSX/*`, `._*`, `.DS_Store` | macOS resource forks and metadata | ✅ Enabled |
+| **HiddenFilesFilter** | `.*` (dot files) | Unix hidden files | ❌ Disabled |
+| **VersionControlFilter** | `.git/*`, `.svn/*`, `.hg/*` | Version control folders | ❌ Disabled |
+| **CustomPatternFilter** | User-defined | Glob/regex patterns | ✅ Enabled (empty) |
+
+## Key Files
+
+- `Sources/MacZipper/Services/EntryFilter.swift` - Protocol and built-in filter implementations
+- `Sources/MacZipper/Services/FilterManager.swift` - Central filter management with persistence
+- `Tests/MacZipperTests/EntryFilterTests.swift` - Unit tests for filters
+
+## Usage
+
+Filters are applied at two stages:
+1. **Display filtering**: When loading archive entries, `__MACOSX` and other filtered items are hidden from the UI
+2. **Extraction filtering**: Filtered items are never extracted to the destination
+
+The filter preferences are automatically persisted to UserDefaults and restored on app launch.
+
 # Project Foundation
 ### 1.1 Project Structure
 
@@ -35,7 +63,7 @@ macos_zipper/
 │       │   ├── ArchiveFolder.swift
 │       │   └── SelectionState.swift
 │       ├── ViewModels/
-│       │   └── ArchiveViewModel.swift
+│       │   └── ZipBrowserViewModel.swift
 │       ├── Views/
 │       │   ├── MainWindow/
 │       │   │   ├── ContentView.swift
@@ -52,7 +80,9 @@ macos_zipper/
 │       │       └── CheckboxView.swift
 │       ├── Services/
 │       │   ├── ZipService.swift
-│       │   └── FilePreviewService.swift
+│       │   ├── FilePreviewService.swift
+│       │   ├── EntryFilter.swift           # Filter protocols & implementations
+│       │   └── FilterManager.swift         # Filter management & persistence
 │       ├── Extensions/
 │       │   └── Entry+Extensions.swift
 │       └── Resources/
@@ -60,13 +90,28 @@ macos_zipper/
 ├── Tests/
 │   └── MacZipperTests/
 │       ├── ZipServiceTests.swift
-│       └── ArchiveViewModelTests.swift
+│       └── EntryFilterTests.swift
 └── .gitignore
+```
+
+# Build 
+To verify implementation compiles:
+
+```
+xcodegen generate --project .  # Regenerate Xcode project if files added
+xcodebuild build -scheme MacZipper
+```
+
+To run tests:
+
+```
+xcodebuild test -scheme MacZipper -destination 'platform=macOS'
 ```
 
 # Task progress
 
 - [x] File list view scroller is hiding the last item
+- [x] Implement archive entry filter layer (__MACOSX, .DS_Store filtering)
 - [ ] Improve tree view 
 - [ ] Extract selected files should ask to chooes destination folder
 - [ ] "Move to" with selected files didnt work
@@ -74,4 +119,5 @@ macos_zipper/
 - [ ] More archive types support: gzip, gz, tar
 - [ ] Search in zip
 - [ ] Open folder in FileListView should navigate to it 
+- [ ] Extract progress
 

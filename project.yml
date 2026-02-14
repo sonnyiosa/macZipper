@@ -49,6 +49,18 @@ targets:
               - com.maczipper.zip-archive
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+  MacZipperTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - Tests/MacZipperTests
+    dependencies:
+      - target: MacZipper
+    settings:
+      base:
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
 packages:
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation.git

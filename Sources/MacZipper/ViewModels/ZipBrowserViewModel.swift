@@ -48,6 +48,7 @@ class ZipBrowserViewModel: ObservableObject {
     
     private let zipService = ZipService()
     private let previewService = FilePreviewService()
+    private let filterManager = FilterManager()
     private var allEntries: [ZipEntry] = []
     
     var windowSize: CGSize {
@@ -58,10 +59,23 @@ class ZipBrowserViewModel: ObservableObject {
         }
     }
     
+    var filterManagerAccess: FilterManager { filterManager }
+    
+    var filteredCountInfo: String {
+        let visibleCount = allEntries.filter { !$0.isDirectory }.count
+        let totalCount = allEntries.count
+        return "\(visibleCount) items"
+    }
+    
     func loadLastDestination() -> URL? {
         guard let bookmark = lastExtractDestinationBookmark else { return nil }
         var isStale = false
         return try? URL(resolvingBookmarkData: bookmark, bookmarkDataIsStale: &isStale)
+    }
+    
+    func reloadWithFilters() async {
+        guard let url = archiveURL else { return }
+        await loadArchive(from: url)
     }
     
     func saveDestination(_ url: URL) {
@@ -124,7 +138,8 @@ class ZipBrowserViewModel: ObservableObject {
         do {
             archiveURL = url
             try await zipService.openArchive(at: url)
-            allEntries = try await zipService.loadEntries()
+            let rawEntries = try await zipService.loadEntries()
+            allEntries = filterManager.filter(entries: rawEntries)
             rootNode = buildTree(from: allEntries)
             rootNode?.isExpanded = true
             currentFolder = rootNode
@@ -251,19 +266,22 @@ class ZipBrowserViewModel: ObservableObject {
     }
     
     func extractAll() async {
+        guard let archiveURL = archiveURL else { return }
+        
+        let destination = archiveURL.deletingLastPathComponent()
         let entriesToExtract = allEntries.filter { !$0.isDirectory }
-        await extractEntries(entriesToExtract)
+        await extractEntries(entriesToExtract, to: destination)
     }
     
     func extractSelected() async {
         let entriesToExtract = allEntries.filter { entry in
             selectedPaths.contains(entry.path) && !entry.isDirectory
         }
-        await extractEntries(entriesToExtract)
+        await extractEntries(entriesToExtract, to: extractDestination)
     }
     
-    private func extractEntries(_ entries: [ZipEntry]) async {
-        guard let destination = extractDestination, !entries.isEmpty else {
+    private func extractEntries(_ entries: [ZipEntry], to destination: URL?) async {
+        guard let destination = destination, !entries.isEmpty else {
             errorMessage = "No destination folder selected."
             showError = true
             return
