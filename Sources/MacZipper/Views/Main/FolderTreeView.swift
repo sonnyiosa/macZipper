@@ -92,6 +92,16 @@ struct FolderNodeView: View {
                     viewModel.selectFolder(node)
                 }
             }
+            .contextMenu {
+                if node.isDirectory {
+                    Button {
+                        viewModel.selectFolder(node)
+                        viewModel.navigateToFolder(node)
+                    } label: {
+                        Label("Navigate", systemImage: "folder")
+                    }
+                }
+            }
             
             if node.isExpanded, let children = node.children {
                 ForEach(children) { child in
