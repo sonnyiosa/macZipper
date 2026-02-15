@@ -99,21 +99,11 @@ class ZipBrowserViewModel: ObservableObject {
     }
     
     @AppStorage("lastExtractDestination") private var lastExtractDestinationBookmark: Data?
-    @AppStorage("windowWidth") private var windowWidth: Double = 1000
-    @AppStorage("windowHeight") private var windowHeight: Double = 700
     
     private let zipService = ZipService()
     private let previewService = FilePreviewService()
     private let filterManager = FilterManager()
     private var allEntries: [ZipEntry] = []
-    
-    var windowSize: CGSize {
-        get { CGSize(width: windowWidth, height: windowHeight) }
-        set {
-            windowWidth = newValue.width
-            windowHeight = newValue.height
-        }
-    }
     
     var filterManagerAccess: FilterManager { filterManager }
     

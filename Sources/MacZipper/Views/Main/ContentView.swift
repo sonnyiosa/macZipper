@@ -129,6 +129,7 @@ struct ContentView: View {
             }
         }
         .quickLookPreview($viewModel.quickLookURL, in: viewModel.quickLookURL != nil ? [viewModel.quickLookURL!] : [])
+        .background(WindowAccessor())
     }
 
     private func setupNotifications() {
@@ -160,9 +161,10 @@ struct ContentView: View {
     private var archiveContentView: some View {
         NavigationSplitView {
             FolderTreeView(viewModel: viewModel, searchText: $searchText)
-                .frame(minWidth: 220)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 280, max: 400)
         } detail: {
             FileListView(viewModel: viewModel, searchText: $searchText)
+                .navigationSplitViewColumnWidth(min: 300, ideal: 500)
         }
         .safeAreaInset(edge: .bottom) {
             StatusBarView(viewModel: viewModel)
