@@ -51,15 +51,33 @@ class ZipBrowserViewModel: ObservableObject {
     var canGoForward: Bool { !forwardHistory.isEmpty }
     
     var breadcrumbPath: String {
-        var components: [String] = ["Archive"]
+        var pathComponents: [String] = []
         var current = fileListFolder
         
+        // Collect path components from leaf to root
         while let node = current, !node.path.isEmpty {
-            components.append(node.name)
+            pathComponents.append(node.name)
             current = findParent(of: node)
         }
         
-        return components.reversed().joined(separator: " > ")
+        // Reverse to get root-to-leaf order and prepend Archive
+        pathComponents.reverse()
+        return (["Archive"] + pathComponents).joined(separator: " > ")
+    }
+    
+    /// Returns breadcrumb segments as tuples of (displayName, node) for clickable navigation.
+    /// First segment is always ("Archive", nil) representing the root.
+    var breadcrumbSegments: [(name: String, node: ZipEntryNode?)] {
+        var segments: [(String, ZipEntryNode?)] = [("Archive", nil)]
+        var current = fileListFolder
+        var pathSegments: [(String, ZipEntryNode?)] = []
+        
+        while let node = current, !node.path.isEmpty {
+            pathSegments.append((node.name, node))
+            current = findParent(of: node)
+        }
+        
+        return segments + pathSegments.reversed()
     }
     
     private func findParent(of node: ZipEntryNode) -> ZipEntryNode? {
@@ -266,6 +284,25 @@ class ZipBrowserViewModel: ObservableObject {
         guard let next = forwardHistory.popLast() else { return }
         navigationHistory.append(fileListFolder)
         fileListFolder = next
+    }
+    
+    /// Navigate to a specific breadcrumb location.
+    /// nil node represents the root (Archive).
+    func navigateToBreadcrumb(_ node: ZipEntryNode?) {
+        // Don't navigate if already at this location
+        if node?.path == fileListFolder?.path {
+            return
+        }
+        
+        // Push current to history, clear forward history
+        navigationHistory.append(fileListFolder)
+        forwardHistory.removeAll()
+        fileListFolder = node
+        
+        // Expand the folder if it exists
+        if let node = node {
+            node.isExpanded = true
+        }
     }
     
     func selectionState(for path: String) -> SelectionState {

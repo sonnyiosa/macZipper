@@ -277,4 +277,153 @@ class NavigationTests: XCTestCase {
         XCTAssertTrue(entries.contains { $0.name == "folderA1" })
         XCTAssertTrue(entries.contains { $0.name == "fileA.txt" })
     }
+    
+    // MARK: - Breadcrumb Navigation Tests
+    
+    func testBreadcrumbSegments_atRoot() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        viewModel.fileListFolder = nil // Root is represented as nil
+        
+        let segments = viewModel.breadcrumbSegments
+        
+        XCTAssertEqual(segments.count, 1)
+        XCTAssertEqual(segments[0].name, "Archive")
+        XCTAssertNil(segments[0].node)
+    }
+    
+    func testBreadcrumbSegments_atDeepLevel() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }),
+              let folderA1 = folderA.children?.first(where: { $0.name == "folderA1" }) else {
+            XCTFail("Required folders not found")
+            return
+        }
+        
+        viewModel.fileListFolder = folderA1
+        
+        let segments = viewModel.breadcrumbSegments
+        
+        XCTAssertEqual(segments.count, 3)
+        XCTAssertEqual(segments[0].name, "Archive")
+        XCTAssertNil(segments[0].node)
+        XCTAssertEqual(segments[1].name, "folderA")
+        XCTAssertEqual(segments[1].node?.name, "folderA")
+        XCTAssertEqual(segments[2].name, "folderA1")
+        XCTAssertEqual(segments[2].node?.name, "folderA1")
+    }
+    
+    func testNavigateToBreadcrumb_toRoot() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        viewModel.fileListFolder = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }) else {
+            XCTFail("folderA not found")
+            return
+        }
+        
+        // Navigate to folderA
+        viewModel.navigateToFolder(folderA)
+        XCTAssertEqual(viewModel.fileListFolder?.name, "folderA")
+        
+        // Navigate back to root via breadcrumb (nil node)
+        viewModel.navigateToBreadcrumb(nil)
+        XCTAssertNil(viewModel.fileListFolder)
+        XCTAssertTrue(viewModel.canGoBack)
+    }
+    
+    func testNavigateToBreadcrumb_toMiddleFolder() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        viewModel.fileListFolder = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }),
+              let folderA1 = folderA.children?.first(where: { $0.name == "folderA1" }) else {
+            XCTFail("Required folders not found")
+            return
+        }
+        
+        // Navigate deep into the tree
+        viewModel.navigateToFolder(folderA)
+        viewModel.navigateToFolder(folderA1)
+        XCTAssertEqual(viewModel.fileListFolder?.name, "folderA1")
+        
+        // Navigate back to middle folder via breadcrumb
+        viewModel.navigateToBreadcrumb(folderA)
+        XCTAssertEqual(viewModel.fileListFolder?.name, "folderA")
+        XCTAssertTrue(viewModel.canGoBack)
+        XCTAssertFalse(viewModel.canGoForward)
+    }
+    
+    func testNavigateToBreadcrumb_sameLocation_doesNothing() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        viewModel.fileListFolder = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }) else {
+            XCTFail("folderA not found")
+            return
+        }
+        
+        viewModel.navigateToFolder(folderA)
+        XCTAssertFalse(viewModel.canGoForward)
+        
+        // Try to navigate to same location
+        viewModel.navigateToBreadcrumb(folderA)
+        
+        // Should not add to history
+        XCTAssertEqual(viewModel.fileListFolder?.name, "folderA")
+        // canGoBack should still be true from the original navigation
+        XCTAssertTrue(viewModel.canGoBack)
+    }
+    
+    func testNavigateToBreadcrumb_expandsTargetFolder() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        viewModel.fileListFolder = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }) else {
+            XCTFail("folderA not found")
+            return
+        }
+        
+        folderA.isExpanded = false
+        
+        viewModel.navigateToBreadcrumb(folderA)
+        
+        XCTAssertTrue(folderA.isExpanded)
+    }
+    
+    func testBreadcrumbPath_atDeepLevel() async {
+        let viewModel = ZipBrowserViewModel()
+        let root = makeTestTree()
+        
+        viewModel.rootNode = root
+        
+        guard let folderA = root.children?.first(where: { $0.name == "folderA" }),
+              let folderA1 = folderA.children?.first(where: { $0.name == "folderA1" }) else {
+            XCTFail("Required folders not found")
+            return
+        }
+        
+        viewModel.fileListFolder = folderA1
+        
+        // Verify breadcrumbPath is correct
+        XCTAssertEqual(viewModel.breadcrumbPath, "Archive > folderA > folderA1")
+    }
 }

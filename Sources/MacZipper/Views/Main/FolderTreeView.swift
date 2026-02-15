@@ -16,6 +16,7 @@ struct FolderTreeView: View {
             }
         }
         .listStyle(.sidebar)
+        .padding(EdgeInsets(top: 0, leading: 0, bottom: 32, trailing: 0))
     }
 }
 

@@ -36,11 +36,14 @@ struct FileListView: View {
                 .buttonStyle(.borderless)
                 .disabled(!viewModel.canGoForward)
 
-                // Current path breadcrumb
-                Text(viewModel.breadcrumbPath)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                // Clickable breadcrumb navigation
+                BreadcrumbView(
+                    segments: viewModel.breadcrumbSegments,
+                    onNavigate: { node in
+                        viewModel.navigateToBreadcrumb(node)
+                    }
+                )
+                .lineLimit(1)
 
                 Spacer()
             }
