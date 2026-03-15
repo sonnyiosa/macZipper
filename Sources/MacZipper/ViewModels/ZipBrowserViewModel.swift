@@ -42,7 +42,8 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var showQuickLook = false
     @Published var selectedEntryForQuickLook: ZipEntry?
     @Published var extractionCompletedMessage: String? = nil
-    
+    @Published var activatedPath: String? = nil
+
     // Navigation history for file list (independent from sidebar)
     @Published var fileListFolder: ZipEntryNode?
     private var navigationHistory: [ZipEntryNode?] = []
@@ -246,6 +247,20 @@ class ZipBrowserViewModel: ObservableObject {
     func getFirstSelectedEntry() -> ZipEntry? {
         guard let firstPath = selectedPaths.first else { return nil }
         return allEntries.first { $0.path == firstPath && !$0.isDirectory }
+    }
+
+    func activateEntry(at path: String) {
+        activatedPath = path
+    }
+
+    func getActivatedEntry() -> ZipEntry? {
+        guard let path = activatedPath else { return nil }
+        return allEntries.first { $0.path == path && !$0.isDirectory }
+    }
+
+    func quickLookActivatedEntry() async {
+        guard let entry = getActivatedEntry() else { return }
+        await quickLookEntry(at: entry.path)
     }
     
     func selectFolder(_ node: ZipEntryNode) {

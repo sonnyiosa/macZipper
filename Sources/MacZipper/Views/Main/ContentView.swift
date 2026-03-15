@@ -234,16 +234,20 @@ struct ContentView: View {
             }
         }
         
-        // Handle Space bar for Quick Look (only when files are selected)
+        // Handle Space bar for Quick Look (uses activated item)
         if event.keyCode == 49 { // Space key
-            if let entry = viewModel.getFirstSelectedEntry() {
-                Task {
-                    await viewModel.quickLookEntry(at: entry.path)
-                }
-                return nil
+            Task {
+                await viewModel.quickLookActivatedEntry()
             }
+            return nil
         }
-        
+
+        // Handle Escape key to clear activation
+        if event.keyCode == 53 { // Escape key
+            viewModel.activatedPath = nil
+            return nil
+        }
+
         return event
     }
     

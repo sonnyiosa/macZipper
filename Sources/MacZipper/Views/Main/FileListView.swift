@@ -80,21 +80,33 @@ struct FileListView: View {
                     FileRowView(
                         entry: entry,
                         selectionState: viewModel.selectionState(for: entry.path),
+                        isActivated: viewModel.activatedPath == entry.path,
                         onToggle: {
                             viewModel.toggleSelection(for: entry.path)
+                        },
+                        onActivate: {
+                            viewModel.activateEntry(at: entry.path)
                         }
                     )
-                    .onTapGesture(count: 2) {
-                        if entry.isDirectory {
-                            // Double-click folder → navigate into it
-                            viewModel.navigateToFolder(entry)
-                        } else {
-                            // Double-click file → preview
-                            Task {
-                                await viewModel.previewEntry(at: entry.path)
+                    .gesture(
+                        TapGesture(count: 1)
+                            .onEnded {
+                                viewModel.activateEntry(at: entry.path)
                             }
-                        }
-                    }
+                            .simultaneously(with: TapGesture(count: 2)
+                                .onEnded {
+                                    if entry.isDirectory {
+                                        // Double-click folder → navigate into it
+                                        viewModel.navigateToFolder(entry)
+                                    } else {
+                                        // Double-click file → preview
+                                        Task {
+                                            await viewModel.previewEntry(at: entry.path)
+                                        }
+                                    }
+                                }
+                            )
+                    )
                 }
             }
             .listStyle(.plain)

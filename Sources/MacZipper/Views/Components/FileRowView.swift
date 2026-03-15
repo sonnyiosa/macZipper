@@ -3,7 +3,9 @@ import SwiftUI
 struct FileRowView: View {
     let entry: ZipEntryNode
     let selectionState: SelectionState
+    let isActivated: Bool
     let onToggle: () -> Void
+    let onActivate: () -> Void
     @State private var isHovering = false
     
     var body: some View {
@@ -60,10 +62,17 @@ struct FileRowView: View {
             }
         }
         .padding(.vertical, 2)
-        .background(isHovering ? Color.accentColor.opacity(0.1) : Color.clear)
+        .background(backgroundColor)
         .onHover { hovering in
             isHovering = hovering
         }
+    }
+
+    private var backgroundColor: Color {
+        if isActivated {
+            return Color.accentColor.opacity(0.2)
+        }
+        return isHovering ? Color.accentColor.opacity(0.1) : Color.clear
     }
     
     private func iconForFile(_ entry: ZipEntryNode) -> String {
