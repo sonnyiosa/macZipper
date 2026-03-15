@@ -27,8 +27,8 @@ targets:
         CFBundleName: MacZipper
         CFBundleDisplayName: MacZipper
         CFBundleIdentifier: com.maczipper.MacZipper
-        CFBundleVersion: "1.0"
-        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "0.4.0"
+        CFBundleShortVersionString: "0.4.0"
         LSMinimumSystemVersion: "14.0"
         NSMainNibFile: ""
         NSPrincipalClass: NSApplication
