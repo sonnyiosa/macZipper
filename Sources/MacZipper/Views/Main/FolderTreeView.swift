@@ -98,7 +98,7 @@ struct FolderNodeView: View {
                         viewModel.selectFolder(node)
                         viewModel.navigateToFolder(node)
                     } label: {
-                        Label("Navigate", systemImage: "folder")
+                        Label("Go to", systemImage: "folder")
                     }
                 }
             }

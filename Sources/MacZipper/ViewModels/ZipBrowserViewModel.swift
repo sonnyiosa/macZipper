@@ -41,6 +41,7 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var quickLookURL: URL?
     @Published var showQuickLook = false
     @Published var selectedEntryForQuickLook: ZipEntry?
+    @Published var extractionCompletedMessage: String? = nil
     
     // Navigation history for file list (independent from sidebar)
     @Published var fileListFolder: ZipEntryNode?
@@ -385,21 +386,36 @@ class ZipBrowserViewModel: ObservableObject {
             showError = true
             return
         }
-        
+
         isExtracting = true
         extractionProgress = 0
-        
+        extractionCompletedMessage = nil
+
         defer {
             isExtracting = false
         }
-        
+
         do {
             let progress = Progress()
             progress.totalUnitCount = Int64(entries.reduce(0) { $0 + $1.size })
-            
+
             try await zipService.extract(entries: entries, to: destination, progress: progress)
             extractionProgress = 1.0
-            
+
+            // Set completion message
+            let itemCount = entries.count
+            extractionCompletedMessage = "Extracted \(itemCount) item\(itemCount == 1 ? "" : "s")"
+
+            // Auto-clear after 3 seconds
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                await MainActor.run {
+                    if self.extractionCompletedMessage != nil {
+                        self.extractionCompletedMessage = nil
+                    }
+                }
+            }
+
             // Save this destination for next time
             saveDestination(destination)
         } catch {

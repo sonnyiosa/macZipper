@@ -13,23 +13,44 @@ struct StatusBarView: View {
             }
             
             HStack(spacing: 16) {
-                HStack(spacing: 4) {
-                    Image(systemName: "doc.on.doc")
-                        .font(.caption)
-                    Text("\(viewModel.selectedPaths.count) selected")
-                        .font(.caption)
+                if viewModel.isExtracting {
+                    // Progress text during extraction
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.circle")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Text("Extracting \(Int(viewModel.extractionProgress * 100))%")
+                            .font(.caption)
+                    }
+                } else if let message = viewModel.extractionCompletedMessage {
+                    // Completion message
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                        Text(message)
+                            .font(.caption)
+                    }
+                } else {
+                    // Default selection info
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                        Text("\(viewModel.selectedPaths.count) selected")
+                            .font(.caption)
+                    }
+
+                    Divider()
+                        .frame(height: 12)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "externaldrive")
+                            .font(.caption)
+                        Text("Total: \(formatBytes(viewModel.selectedSize))")
+                            .font(.caption)
+                    }
                 }
-                
-                Divider()
-                    .frame(height: 12)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "externaldrive")
-                        .font(.caption)
-                    Text("Total: \(formatBytes(viewModel.selectedSize))")
-                        .font(.caption)
-                }
-                
+
                 Spacer()
             }
             .padding(.horizontal, 12)
