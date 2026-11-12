@@ -1,3 +1,4 @@
 .history/
 MacZipper.xcodeproj/
 .DS_Store
+dist/

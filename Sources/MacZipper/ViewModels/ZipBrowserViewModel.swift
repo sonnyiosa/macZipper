@@ -36,6 +36,8 @@ class ZipBrowserViewModel: ObservableObject {
     @Published var showError = false
     @Published var lastError: Error?
     @Published var isLoading = false
+    @Published var showPasswordPrompt = false
+    @Published var passwordErrorMessage: String?
     @Published var sortOption: SortOption = .name
     @Published var sortOrder: SortOrder = .ascending
     @Published var quickLookURL: URL?
@@ -179,13 +181,13 @@ class ZipBrowserViewModel: ObservableObject {
         }
     }
     
-    func loadArchive(from url: URL) async {
+    func loadArchive(from url: URL, password: String? = nil) async {
         isLoading = true
         defer { isLoading = false }
         
         do {
             archiveURL = url
-            try await zipService.openArchive(at: url)
+            try await zipService.openArchive(at: url, password: password)
             let rawEntries = try await zipService.loadEntries()
             allEntries = filterManager.filter(entries: rawEntries)
             rootNode = buildTree(from: allEntries)
@@ -195,6 +197,8 @@ class ZipBrowserViewModel: ObservableObject {
             navigationHistory.removeAll()
             forwardHistory.removeAll()
             isLoaded = true
+            showPasswordPrompt = false
+            passwordErrorMessage = nil
             selectedPaths.removeAll()
             
             // Set default extract destination: last used location, or zip's folder
@@ -204,6 +208,13 @@ class ZipBrowserViewModel: ObservableObject {
                 extractDestination = url.deletingLastPathComponent()
             }
         } catch {
+            if let zipError = error as? ZipError,
+               zipError == .passwordRequired || zipError == .incorrectPassword {
+                isLoaded = false
+                showPasswordPrompt = true
+                passwordErrorMessage = zipError == .incorrectPassword ? zipError.localizedDescription : nil
+                return
+            }
             lastError = error
             errorMessage = "Failed to load archive: \(error.localizedDescription)"
             showError = true

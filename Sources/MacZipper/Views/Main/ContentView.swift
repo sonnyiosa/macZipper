@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @FocusState private var isSearchFieldFocused: Bool
     @State private var quickLookIsPresented = false
+    @State private var archivePassword = ""
     
     private var showingFilePicker: Binding<Bool> {
         Binding(
@@ -38,6 +39,28 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: { error in
             Text(error)
+        }
+        .sheet(isPresented: $viewModel.showPasswordPrompt, onDismiss: { archivePassword = "" }) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Password required")
+                    .font(.headline)
+                Text("Enter the password for \(viewModel.archiveURL?.lastPathComponent ?? "this archive").")
+                SecureField("Password", text: $archivePassword)
+                    .onSubmit(unlockArchive)
+                if let message = viewModel.passwordErrorMessage {
+                    Text(message)
+                        .foregroundColor(.red)
+                }
+                HStack {
+                    Spacer()
+                    Button("Cancel") { viewModel.showPasswordPrompt = false }
+                    Button("Unlock", action: unlockArchive)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(archivePassword.isEmpty)
+                }
+            }
+            .padding(24)
+            .frame(width: 360)
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers)
@@ -130,6 +153,13 @@ struct ContentView: View {
         }
         .quickLookPreview($viewModel.quickLookURL, in: viewModel.quickLookURL != nil ? [viewModel.quickLookURL!] : [])
         .background(WindowAccessor())
+    }
+
+    private func unlockArchive() {
+        guard let url = viewModel.archiveURL, !archivePassword.isEmpty else { return }
+        let password = archivePassword
+        archivePassword = ""
+        Task { await viewModel.loadArchive(from: url, password: password) }
     }
 
     private func setupNotifications() {

@@ -11,6 +11,7 @@ targets:
       - assets/Assets.xcassets
     dependencies:
       - package: ZIPFoundation
+      - package: ZipArchive
       - sdk: QuickLook.framework
       - sdk: QuickLookUI.framework
     settings:
@@ -27,8 +28,8 @@ targets:
         CFBundleName: MacZipper
         CFBundleDisplayName: MacZipper
         CFBundleIdentifier: com.maczipper.MacZipper
-        CFBundleVersion: "0.4.0"
-        CFBundleShortVersionString: "0.4.0"
+        CFBundleVersion: "0.6.0"
+        CFBundleShortVersionString: "0.6.0"
         LSMinimumSystemVersion: "14.0"
         NSMainNibFile: ""
         NSPrincipalClass: NSApplication
@@ -65,3 +66,6 @@ packages:
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation.git
     from: 0.9.20
+  ZipArchive:
+    url: https://github.com/ZipArchive/ZipArchive.git
+    from: 2.6.0
